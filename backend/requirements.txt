@@ -10,3 +10,4 @@ pydantic[email]
 bcrypt
 asyncpg
 redis
+python-multipart

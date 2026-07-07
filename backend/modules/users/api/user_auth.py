@@ -111,7 +111,7 @@ def login(request:LoginRequest, db:Session=Depends(get_db)):
         raise HTTPException(400, "Invalid user credentials")
     
     access_token = create_access_token(
-        data={'sub':user.uuid}
+        data={'sub':str(user.uuid)}
         )
     
     return {"msg":"Login Successful","token":access_token}

@@ -14,7 +14,7 @@ class Users(Base):
     __table_args__ = {"schema": "Users"}
     
     id = Column(Integer, primary_key=True, index=True)
-    uuid = Column(UUID(as_uuid=True),default=uuid.uuid4,unique=True,nullable=False)
+    uuid = Column(UUID(as_uuid=True),default=uuid.uuid4,unique=True,nullable=False, index=True)
     full_name = Column(String(50), nullable=False)
     email = Column(String(50), nullable=False, unique=True, index=True)
     password_hash = Column(Text, nullable=False)
@@ -28,6 +28,11 @@ class Users(Base):
     deleted_at = Column(DateTime(timezone=True), nullable=True)  # Soft delete
     
     refresh_tokens = relationship("RefreshTokens",back_populates="user",cascade="all, delete-orphan")
+
+    collections = relationship("Collections",back_populates="user",cascade="all, delete-orphan")
+
+    documents = relationship("Documents",back_populates="user",cascade="all, delete-orphan")
+    
     
     def __repr__(self):
         return f"<User: {self.full_name} | {self.email}>"
