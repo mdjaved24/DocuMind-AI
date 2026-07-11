@@ -1,0 +1,1 @@
+2026-07-11 21:27:21 - audit - INFO - {"timestamp": "2026-07-11T15:57:21.985626", "user_id": "5d34d2fd-96a8-4267-a88c-34a7d2ce209f", "email": "mdjav077@gmail.com", "action": "USER_LOGIN", "resource": "user", "status": "SUCCESS", "details": {"login_method": "password"}}

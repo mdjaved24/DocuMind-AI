@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import asc, desc, func, or_, select
 
 
 collection_router = APIRouter(prefix="/collections/v1", tags=['Collections'])
@@ -17,7 +17,7 @@ collection_router = APIRouter(prefix="/collections/v1", tags=['Collections'])
 # Add Collections
 @collection_router.post("/add", status_code=status.HTTP_201_CREATED)
 def add_collection(request: CollectionRequest, db:Session=Depends(get_db), current_user=Depends(get_current_user)):
-    name = request.name
+    name = request.name.strip()
     
     if not name:
         raise HTTPException(400, "Collection Name is required")
@@ -25,10 +25,11 @@ def add_collection(request: CollectionRequest, db:Session=Depends(get_db), curre
     if len(name) > 100:
         raise HTTPException(400, "Collection Name must not exceed 100 characters")
     
-    # collection = db.query(Collections).filter_by(user_id=current_user.id).filter_by(name=name)
+    collection = db.query(Collections).filter(Collections.user_id==current_user.id, func.lower(Collections.name)==name.lower()).first()
     
-    # if collection:
-    #     raise HTTPException(400, "The collection name is already taken by you. Kindly provide some other name")
+    if collection:
+        raise HTTPException(400, "You have already taken the collection name. Kindly provide some other name")
+    
     
     new_collection = Collections(
         uuid=str(uuid.uuid4().hex),
@@ -65,7 +66,7 @@ def get_collections(
     current_user=Depends(get_current_user),
     search:Optional[str]=Query(None),
     sort_by:str=Query('id'),
-    order:str=Query('asc',regex="^(asc|desc)$"),
+    order:str=Query('asc',pattern="^(asc|desc)$"),
     page:int=Query(1,ge=1),
     limit:int=Query(10,ge=1,le=100)
     ):
@@ -75,18 +76,31 @@ def get_collections(
     query = query.where(Collections.user_id == current_user.id)
     
     # Apply Search
-    if search: query=query.where(Collections.model.ilike(f"%{search}%"))
+    if search:
+        query = query.where(
+        or_(
+            Collections.name.ilike(f"%{search}%"),
+            Collections.description.ilike(f"%{search}%")
+        )
+    )
     
     # Get total count for pagination metadata
     total_collections = db.scalar(select(func.count()).select_from(query.subquery()))
     
     # Apply sorting
-    sort_col = getattr(Collections, sort_by, Collections.id)
+    allowed_sort_fields = {
+    "id": Collections.id,
+    "name": Collections.name,
+    "created_at": Collections.created_at,
+    "updated_at": Collections.updated_at,
+    }
+
+    sort_col = allowed_sort_fields.get(sort_by, Collections.id)
+    
     query = query.order_by(desc(sort_col) if order=="desc" else asc(sort_col))
     
     # Apply pagination
-    collections = db.scalars(query.offset((page-1)*limit).limit(limit)).all()   
-    
+    collections = db.scalars(query.offset((page-1)*limit).limit(limit)).all()
     
     return collections
 
@@ -121,7 +135,8 @@ def update_collection_details(id:int, request:CollectionUpdate, db:Session=Depen
     
     for key, value in update_data.items():
         setattr(collection, key, value)
-        
+    
+    collection.updated_at = datetime.utcnow()
     
     db.commit()
     db.refresh(collection)

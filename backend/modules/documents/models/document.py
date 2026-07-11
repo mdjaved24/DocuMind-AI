@@ -59,15 +59,16 @@ class Documents(Base):
 
     is_favorite = Column(Boolean, default=False)
 
-    document_status = Column(Enum(DocumentStatus),default=DocumentStatus.ACTIVE,nullable=False)
+    document_status = Column(Enum(DocumentStatus, name="documentstatus", schema="Documents", create_type=True),default=DocumentStatus.ACTIVE,nullable=False)
 
-    processing_status = Column(Enum(ProcessingStatus),default=ProcessingStatus.PENDING,nullable=False)
+    processing_status = Column(Enum(ProcessingStatus, name="processingstatus", schema="Documents", create_type=True),default=ProcessingStatus.PENDING,nullable=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     updated_at = Column(DateTime(timezone=True),server_default=func.now(),onupdate=func.now())
 
-    deleted_at = Column(DateTime(timezone=True))
+    deleted_at = Column(DateTime(timezone=True))   # Soft Delete
+
 
     user = relationship("Users",back_populates="documents")
 
@@ -114,7 +115,7 @@ class DocumentActivity(Base):
 
     document_id = Column(Integer,ForeignKey("Documents.documents.id"),nullable=False)
 
-    action = Column(Enum(ActivityAction),nullable=False)
+    action = Column(Enum(ActivityAction, name="activityaction",schema="Documents",create_type=True),nullable=False, default=ActivityAction.UPLOAD)
 
     activity_metadata = Column(JSON)
 
